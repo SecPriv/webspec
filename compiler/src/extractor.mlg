@@ -1,0 +1,61 @@
+(********************************************************************************)
+(*  Copyright (c) 2021 Benjamin Farinier                                        *)
+(*                                                                              *)
+(*  Permission is hereby granted, free of charge, to any person obtaining a     *)
+(*  copy of this software and associated documentation files (the "Software"),  *)
+(*  to deal in the Software without restriction, including without limitation   *)
+(*  the rights to use, copy, modify, merge, publish, distribute, sublicense,    *)
+(*  and/or sell copies of the Software, and to permit persons to whom the       *)
+(*  Software is furnished to do so, subject to the following conditions:        *)
+(*                                                                              *)
+(*  The above copyright notice and this permission notice shall be included in  *)
+(*  all copies or substantial portions of the Software.                         *)
+(*                                                                              *)
+(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  *)
+(*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,    *)
+(*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL     *)
+(*  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  *)
+(*  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING     *)
+(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER         *)
+(*  DEALINGS IN THE SOFTWARE.                                                   *)
+(*                                                                              *)
+(********************************************************************************)
+
+DECLARE PLUGIN "extractor_plugin"
+
+  {
+open Stdarg
+
+let catch f def = try f def with exn -> (CErrors.(user_err (print_no_report exn)))
+
+let extract def =
+  let defs = Extract.Horn.extract def in
+  List.iter
+    (fun t -> Smtlib_pp.pp_command Format.std_formatter t)
+    defs
+}
+
+VERNAC COMMAND EXTEND Extract CLASSIFIED AS SIDEFF
+| [ "Set" "Array" "Size" int(int) ] ->
+{ Config.ArraySize.set int }
+| [ "Set" "Inline" "Depth" int(int) ] ->
+{ Config.InlineDepth.set int }
+| [ "Extract" "Query" constr(def) ] ->
+{ catch extract def }
+| [ "Extract" "Query" constr(def) "Using" "Lemma" constr(lem) ] ->
+{ catch Extract.use_lemma lem;
+  catch extract def }
+| [ "Extract" "Query" constr(def) "Using" "Lemmas" constr_list(lems) ] ->
+{ List.iter (catch Extract.use_lemma) lems;
+  catch extract def }
+| [ "InlineConstant" global(gb) ] ->
+{ catch Extract.inline_constant gb }
+| [ "InlineRelation" global(gb) ] ->
+{ catch (Extract.inline_relation None) gb }
+| [ "InlineRelation" global(gb) "With" "Depth" int(depth) ] ->
+{ catch (Extract.inline_relation (Some depth)) gb }
+| [ "Destruct" "Relation" global(gb) ] ->
+{ catch (Extract.destruct_relation None) gb }
+| [ "Destruct" "Relation" global(gb) "At" "Level" int(depth) ] ->
+{ catch (Extract.destruct_relation (Some depth)) gb }
+  END

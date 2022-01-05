@@ -1,0 +1,34 @@
+diff --git a/src/muz/base/fp_params.pyg b/src/muz/base/fp_params.pyg
+index 098922b1b..58abaad0e 100644
+--- a/src/muz/base/fp_params.pyg
++++ b/src/muz/base/fp_params.pyg
+@@ -138,6 +138,7 @@ def_module_params('fp',
+                           ('spacer.blast_term_ite_inflation', UINT, 3, 'Maximum inflation for non-Boolean ite-terms expansion: 0 (none), k (multiplicative)'),
+                           ('spacer.reach_dnf', BOOL, True, "Restrict reachability facts to DNF"),
+                           ('bmc.linear_unrolling_depth', UINT, UINT_MAX, "Maximal level to explore"),
++                          ('bmc.initial_unrolling_level', UINT, 0, "Initial level for the BMC exploration"),
+                           ('spacer.iuc.split_farkas_literals', BOOL, False, "Split Farkas literals"),
+                           ('spacer.native_mbp', BOOL, True, "Use native mbp of Z3"),
+                           ('spacer.eq_prop', BOOL, True, "Enable equality and bound propagation in arithmetic"),
+diff --git a/src/muz/bmc/dl_bmc_engine.cpp b/src/muz/bmc/dl_bmc_engine.cpp
+index a0233cc7b..db7dad056 100644
+--- a/src/muz/bmc/dl_bmc_engine.cpp
++++ b/src/muz/bmc/dl_bmc_engine.cpp
+@@ -1164,11 +1164,17 @@ namespace datalog {
+ 
+         lbool check() {
+             setup();
++            unsigned initial_level = b.m_ctx.get_params().bmc_initial_unrolling_level();
+             unsigned max_depth = b.m_ctx.get_params().bmc_linear_unrolling_depth();
+             for (unsigned i = 0; i < max_depth; ++i) {
+                 IF_VERBOSE(1, verbose_stream() << "level: " << i << "\n";);
+                 b.checkpoint();
+                 compile(i);
++                if (i<initial_level) {
++                  IF_VERBOSE(1, verbose_stream()
++                             << "skipping... (" << i << " < " << initial_level << ")\n";);
++                  continue;
++                }
+                 lbool res = check(i);
+                 if (res == l_undef) {
+                     return res;

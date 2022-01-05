@@ -1,0 +1,4 @@
+(lang dune 2.7)
+(using coq 0.1)
+(name extractor)
+(cram enable)

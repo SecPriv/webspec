@@ -1,0 +1,118 @@
+# Coq Makefiles
+Makefile.coq
+Makefile.coq.conf
+
+# Ignore external libraries
+plugin/record-update
+
+# LaTeX temporary files
+*.aux
+*.log
+*.toc
+*.fls
+
+# PDF output - usually a bad idea to keep this in Git
+paper/*.pdf
+paper/auto/
+
+# Latexmk
+*.fdb_latexmk
+
+# SyncTeX
+*.synctex.gz
+
+# LaTeX Beamer
+*.snm
+*.vrb
+*.nav
+*.out
+
+# BibTeX
+*.bbl
+*.blg
+
+# Sublime Text Project Files (usually contain absolute paths)
+*.sublime-project
+*.sublime-workspace
+
+# macOS hidden files
+.DS_Store
+
+# Texpad folder for temporary files
+.texpadtmp
+
+# WebStorm/PyCharm config files
+.idea
+
+# ocaml
+*.annot
+*.cmo
+*.cma
+*.cmi
+*.a
+*.o
+*.cmx
+*.cmxs
+*.cmxa
+*.mlg.d
+*.cmt
+*.cmti
+
+# ocamlbuild working directory
+_build/
+
+# ocamlbuild targets
+*.byte
+*.native
+
+# oasis generated files
+setup.data
+setup.log
+
+# Merlin configuring file for Vim and Emacs
+.merlin
+
+# Dune generated files
+*.install
+
+# Local OPAM switch
+_opam/
+
+### Coq ###
+.*.aux
+.*.d
+*.a
+*.cma
+*.cmi
+*.cmo
+*.cmx
+*.cmxa
+*.cmxs
+*.glob
+*.ml.d
+*.ml4.d
+*.mli.d
+*.mllib.d
+*.mlpack.d
+*.native
+*.o
+*.v.d
+*.vio
+*.vo
+*.vok
+*.vos
+.coq-native/
+.csdp.cache
+.lia.cache
+.nia.cache
+.nlia.cache
+.nra.cache
+csdp.cache
+lia.cache
+nia.cache
+nlia.cache
+nra.cache
+
+
+# Specific to this project
+plugin/src/extractor.ml

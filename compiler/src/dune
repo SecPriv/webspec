@@ -1,0 +1,28 @@
+(library
+ (name extractor)                   ; This is the name you will use in
+                                    ; Coq's `Declare ML Module`, and
+                                    ; the name of the main OCaml
+                                    ; module of your plugin.
+
+ (public_name extractor.plugin)     ; This makes the plugin
+                                    ; installable; recommended, must
+                                    ; match opam package name
+
+ (synopsis "extractor")             ; Synopsis, used in META generation
+
+ (flags :standard -rectypes)        ; Coq requires the `-rectypes`
+                                    ; flag; CoqPP generated code
+                                    ; requires to disable warning 27
+                                    ; often.
+
+ (libraries                         ; ML Libraries we want to link
+                                    ; with, your choice here.
+
+   coq.vernac                       ; needed for vernac extend
+   coq.plugins.ltac                 ; needed for tactic extend
+   z3
+ )
+)
+
+; This will let Dune know about Coq's .mlg grammar files.
+(coq.pp (modules extractor))
