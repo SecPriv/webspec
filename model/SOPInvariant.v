@@ -28,8 +28,6 @@ From Extractor Require Import Array.
 Require Import Browser.
 
 Require Import Coq.Lists.List.
-From Hammer Require Import Tactics.
-
 
 Definition IsEvRequestCORSPreflight rq ev :=
   match ev with
@@ -65,13 +63,29 @@ Inductive all_list (rq: Request) : list Event -> Prop :=
 Lemma all_list_forall_preflight :
   forall rq _evs, List.Forall (fun x => not (IsEvRequestCORSPreflight rq x)) _evs
                   <-> all_list rq _evs.
-Proof.
+Proof with unfold not; compute; try tauto.
   intros.
   induction _evs.
-  - sauto lq:on.
-  - split.
-    * sauto.
-    * intros. remember (a :: _evs) as evs. destruct H; sauto.
+  - split; intros.
+    induction H.
+    * constructor. reflexivity.
+    * apply AllList_rec with (x:=x) (rest:=l). reflexivity.
+      unfold IsEvRequestCORSPreflight in H.
+      split. induction x... induction evrq_em... apply IHForall.
+    * constructor.
+  - split; intros.
+    induction H. constructor. reflexivity.
+    apply AllList_rec with (x:= x) (rest:= l). reflexivity.
+    unfold IsEvRequestCORSPreflight in H.
+    split. induction x... induction evrq_em... apply IHForall.
+    constructor 2.
+    remember (a :: _evs) as evs.
+    destruct H. congruence. destruct H0.
+    assert (x = a) by congruence. subst.
+    unfold IsEvRequestCORSPreflight. induction a... induction evrq_em...
+    destruct IH_evs. remember (a :: _evs) as evs.
+    destruct H. congruence. assert (rest = _evs) by congruence. subst. destruct H2.
+    apply (H1 H3).
 Qed.
 
 
@@ -107,6 +121,7 @@ Qed.
 
 InlineRelation all_list                      With Depth 6.
 InlineRelation is_secure_context             With Depth 0.
+InlineRelation is_not_secure_context         With Depth 0.
 InlineRelation window_ctx_of_dom_path_rec    With Depth 0.
 InlineRelation window_ctx_of_dom_path        With Depth 0.
 InlineRelation is_script_in_dom_path         With Depth 0.

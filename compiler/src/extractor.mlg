@@ -26,10 +26,16 @@ DECLARE PLUGIN "extractor_plugin"
   {
 open Stdarg
 
+let output_language = ref `Horn
+
 let catch f def = try f def with exn -> (CErrors.(user_err (print_no_report exn)))
 
 let extract def =
-  let defs = Extract.Horn.extract def in
+  let defs = match !output_language with
+             | `Horn -> Extract.Horn.extract def
+             | `Smtlib -> Format.fprintf Format.std_formatter "(set-logic HORN)\n@.";
+                          Extract.Smtlib.extract def
+  in
   List.iter
     (fun t -> Smtlib_pp.pp_command Format.std_formatter t)
     defs
@@ -40,6 +46,8 @@ VERNAC COMMAND EXTEND Extract CLASSIFIED AS SIDEFF
 { Config.ArraySize.set int }
 | [ "Set" "Inline" "Depth" int(int) ] ->
 { Config.InlineDepth.set int }
+| [ "Set" "Output" "Smtlib" ] -> { output_language := `Smtlib }
+| [ "Set" "Output" "Horn" ] -> { output_language := `Horn }
 | [ "Extract" "Query" constr(def) ] ->
 { catch extract def }
 | [ "Extract" "Query" constr(def) "Using" "Lemma" constr(lem) ] ->

@@ -26,7 +26,6 @@ From Extractor Require Import Loader.
 From Extractor Require Import Array.
 
 Require Import Browser.
-From Hammer Require Import Tactics.
 
 
 Definition SWInvariant (gb: Global) (evs: list Event) (st: State) : Prop :=
@@ -79,7 +78,10 @@ Proof.
   intros.
   unfold distinct, pairwise in H.
   remember (Nat.eqb M N) as EQ.
-  destruct (EQ); hauto b:on.
+  destruct (EQ).
+  - apply eq_sym in HeqEQ. apply PeanoNat.Nat.eqb_eq in HeqEQ. auto.
+  - destruct (PeanoNat.Nat.eq_dec M N). tauto.
+    specialize (H M N n). subst. congruence.
 Qed.
 
 
@@ -87,14 +89,14 @@ Lemma reachable_implies_distinct_response :
   forall gb evs st, Reachable gb evs st -> @distinct Response (responses gb).
 Proof.
   intros gb evs st HR.
-  induction HR; try(sfirstorder).
+  induction HR; tauto.
 Qed.
 
 Lemma reachable_implies_distinct_request :
   forall gb evs st, Reachable gb evs st -> @distinct Request (requests gb).
 Proof.
   intros gb evs st HR.
-  induction HR; try(sfirstorder).
+  induction HR; tauto.
 Qed.
 
 
@@ -118,11 +120,12 @@ Lemma cache_or_ft_response_implies_server_response :
       ).
 Proof.
   intros.
-  induction H0; try(sfirstorder).
-  - qauto unfold: select,const.
-  - simpl in *. split. sfirstorder.
+  induction H0; try (subst; simpl in *; subst; congruence).
+  - simpl. split; discriminate.
+  - subst. simpl in *. firstorder. discriminate.
+  - simpl in *. split. tauto.
     intros.
-    assert (rp = rp0). fcrush.
+    assert (rp = rp0). { rewrite H10 in H13. simpl in H13. congruence. }
     assert (rp = (responses gb.[rp_idx]) ->
             rp = (responses gb.[rp_idx0]) ->
             rp_idx = rp_idx0). {
@@ -131,69 +134,96 @@ Proof.
           (T := Response) (array := responses gb) (v := rp).
       eapply reachable_implies_distinct_response with
           (gb := gb) (st := ({{st_vs, st_ft, st_wk, st_wd, st_cj, st_bl, st_sg }})).
-      apply H0. apply eq_sym in H14. all: sfirstorder.
+      apply H0. apply eq_sym in H14. all: firstorder.
     }
     assert (rp_idx0 = rp_idx). {
-      apply eq_sym. sfirstorder.
+      apply eq_sym. subst. firstorder.
     }
     assert (rq_idx0 = rq_idx). {
       apply uniqueness_of_indexes with
           (T := Request) (array := requests gb) (v := rq).
       eapply reachable_implies_distinct_request with
           (gb := gb) (st := ({{st_vs, st_ft, st_wk, st_wd, st_cj, st_bl, st_sg }})).
-      apply H0. apply eq_sym. all: sfirstorder.
+      apply H0. apply eq_sym. all: try tauto.
+      rewrite H10 in H12. simpl in *.
+      rewrite H6 in H12. apply H12.
     }
     apply uniqueness_of_indexes with
         (T := Response) (array := responses gb) (v := rp).
     eapply reachable_implies_distinct_response with
         (gb := gb) (st := ({{st_vs, st_ft, st_wk, st_wd, st_cj, st_bl, st_sg}})).
-    apply H0. apply eq_sym. sfirstorder.
+    apply H0. apply eq_sym. firstorder.
     unfold not, is_local_scheme in H3, H4.
     rewrite <- H14 in *.
-    destruct (url_protocol (rp_url rp)); try sfirstorder.
+    destruct (url_protocol (rp_url rp)); firstorder;
+    assert (He: rq_idx = rq_idx0) by congruence; rewrite He in *; tauto.
 
   - split.
     * intros. destruct IHReachable.
-      case_eq (Nat.eqb rq_idx0 rq_idx); sfirstorder.
+      case_eq (Nat.eqb rq_idx0 rq_idx); firstorder.
     * intros. destruct IHReachable.
       case_eq (Nat.eqb rq_idx0 rq_idx).
       -- case_eq (Nat.eqb rp_idx0 rp_idx).
-         ** hauto b:on.
-         ** intros. assert (rp = (responses gb.[rp_idx0])). fcrush.
+         ** firstorder.
+            apply PeanoNat.Nat.eqb_eq in H16, H17.
+            subst. firstorder.
+         ** intros. assert (rp = (responses gb.[rp_idx0])). firstorder.
              assert (rp_idx = rp_idx0). {
                apply uniqueness_of_indexes with
                    (T := Response) (array := responses gb) (v := rp).
                eapply reachable_implies_distinct_response with
                    (gb := gb) (st := ({{st_vs, st_ft, st_wk, st_dm, st_cj, st_bl, st_sg}})).
-               all: fcrush.
+               - apply H0.
+               - subst. simpl in H13. congruence.
+               - apply (eq_sym H2).
              }
              apply eq_sym in H14.
-             all: hauto b:on.
+             subst. congruence.
+             subst. apply PeanoNat.Nat.eqb_eq in H17. subst. auto.
+             subst. simpl in *.  apply PeanoNat.Nat.eqb_eq in H17. subst.
+
+             apply uniqueness_of_indexes with (N:=rp_idx) (M:=rp_idx0) in H18.
+             subst. apply (H14 H9).
+             apply reachable_implies_distinct_response with
+                 (evs := st_ev) (gb := gb)
+                 (st := ({{st_vs, st_ft, st_wk, st_dm, st_cj, st_bl, st_sg}})).
+             apply H0. reflexivity.
       -- assert (rq_idx0 = rq_idx). {
            apply uniqueness_of_indexes with
                (T := Request) (array := requests gb) (v := rq).
            eapply reachable_implies_distinct_request with
                (gb := gb) (st := ({{st_vs, st_ft, st_wk, st_dm, st_cj, st_bl, st_sg}})).
-           all: fcrush.
+           apply H0. apply (eq_sym H1).
+           rewrite H11 in H12. rewrite H7 in H12.  apply H12.
          }
-         hauto b:on.
+         intros. subst.
+         assert (rq_idx = rq_idx) by reflexivity.
+         apply PeanoNat.Nat.eqb_eq in H1. congruence.
   - split.
     * intros. destruct IHReachable.
       case_eq (Nat.eqb rq_idx0 rq_idx).
       -- case_eq (Nat.eqb rp_idx0 rp_idx).
-         ** intros. subst. rewrite HS in H5. hauto b:on.
+         ** intros. subst. rewrite HS in H5.
+            apply PeanoNat.Nat.eqb_eq in H10,H11. subst. tauto.
          ** intros. subst. rewrite HS in H5. simpl in *.
-            hauto depth: 2 lq: on exh: on use: PeanoNat.Nat.eqb_eq unfold: Index, select, store.
+            apply PeanoNat.Nat.eqb_eq in H11. subst.
+            assert (rp_idx0 = rp_idx). {
+              unfold store,select in *.
+              case_eq (Nat.eqb rq_idx rq_idx).
+              - intros. rewrite H1 in H7. congruence.
+              - intros. assert (Hr: rq_idx = rq_idx) by reflexivity.
+                apply PeanoNat.Nat.eqb_eq in Hr. congruence.
+            }
+            subst. tauto.
       -- intros.
          assert (((wk_cache st_wk.[rq_idx0]<-Some rp_idx0).[rq_idx])
                  = (wk_cache st_wk.[rq_idx])). {
            unfold select, store.
            rewrite HS in H5.
-           hauto lq:on.
+           rewrite H10. tauto.
          }
-         hauto.
-    * intros. destruct IHReachable.
-      sfirstorder.
+         simpl in *. subst. simpl in H7. rewrite H11 in H7. apply (H8 H7).
+    * intros. destruct IHReachable. firstorder.
 Qed.
 
 
@@ -212,28 +242,30 @@ Proof.
   intros.
   unfold in_history in *.
   unfold is_server_response in H2.
-  induction H1; try(sfirstorder).
-  - fcrush.
+  induction H1; try (simpl in *; subst; tauto).
+  - simpl in H3. discriminate.
   - rewrite H9 in H3. simpl in *.
     unfold select,store in *.
     destruct (Nat.eqb corr0 corr).
-    -- assert (Heq1: rq_idx0 = rq_idx). sfirstorder.
+    -- assert (Heq1: rq_idx0 = rq_idx) by congruence.
        rewrite Heq1 in *.
-       assert (Heq2: rp_idx0 = rp_idx). sfirstorder.
+       assert (Heq2: rp_idx0 = rp_idx) by congruence.
        rewrite Heq2 in *.
        unfold is_valid_fetch_response in H6.
        destruct H7, H11, H12.
        rewrite H5 in H12.
        unfold not, is_local_scheme in H2.
        rewrite H12 in H8.
-       destruct (url_protocol (rq_url (requests gb rq_idx))); sfirstorder || hauto b:on.
-    -- apply IHReachable. sfirstorder.
+       destruct (url_protocol (rq_url (requests gb rq_idx)));
+       (subst; destruct H2; unfold is_server_response in H8; destruct H8; subst;
+         apply (eq_sym H9)) || ( subst; destruct H2; firstorder).
+    -- apply IHReachable. firstorder.
   - rewrite H10 in H3. simpl in *.
     unfold select,store in *.
     destruct (Nat.eqb (ft_correlator st_ft) corr).
-    -- assert (Heq1: rq_idx0 = rq_idx). sfirstorder.
+    -- assert (Heq1: rq_idx0 = rq_idx) by congruence.
        rewrite Heq1 in *.
-       assert (Heq2: rp_idx0 = rp_idx). sfirstorder.
+       assert (Heq2: rp_idx0 = rp_idx) by congruence.
        rewrite Heq2 in *.
        assert (forall  evs st rq rq_idx rp rp_idx,
                   Reachable gb evs st ->
@@ -248,10 +280,13 @@ Proof.
          apply H. apply H0.
          }
        assert (rp_idx = server_responses gb rq_idx). {
-         apply eq_sym; eapply H11; sfirstorder || hauto lq:on.
+         apply eq_sym; eapply H11.
+         apply H1. exists. exists. rewrite H6 in H5. apply H5.
+         unfold is_valid_fetch_response in H9. destruct H9,H12,H13.
+         unfold select. rewrite H13. apply H5. apply H8.
        }
-       sfirstorder.
-    -- apply IHReachable. sfirstorder.
+       destruct H2. rewrite <- H12 in H13. apply H13.
+    -- apply IHReachable. firstorder.
 Qed.
 
 
@@ -264,12 +299,13 @@ Proof.
   unfold SWInvariant.
   intros.
   assert (responses gb.[rp_idx] = rp).
-  eapply script_update_cache_disabled_implies_no_tampering; hauto q:on.
-  sfirstorder.
+  eapply script_update_cache_disabled_implies_no_tampering; try tauto.
+  apply H1. apply H2. apply H3. subst. tauto.
 Qed.
 
 
 InlineRelation is_secure_context             With Depth 0.
+InlineRelation is_not_secure_context         With Depth 0.
 InlineRelation window_ctx_of_dom_path_rec    With Depth 0.
 InlineRelation window_ctx_of_dom_path        With Depth 0.
 InlineRelation is_script_in_dom_path         With Depth 0.
@@ -284,4 +320,4 @@ InlineRelation Scriptstate                   With Depth 5.
 
 Set Array Size 5.
 Require Import BrowserStates.
-Extract Query SWQuery Using Lemma script_state_is_reachable.
+Extract Query SWQuery Using Lemma script_state_secure_is_reachable.

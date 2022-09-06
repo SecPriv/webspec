@@ -153,12 +153,12 @@ struct
     let sres = (Ast.mk_term_defn fdef slist list).Ast.term_sort in
     let arr  = Ast.mk_variable "a" (Ast.mk_sort_datatype (array env) [sort]) in
     let name = map_name ^ fdef.Ast.fdef_name in
-    let prms = ["T"; "U"(* TODO *)] in
+    let prms = ["T"; "U"] in
     Ast.(mk_fundefn name prms (tl @ [ arr ])
            (Ast.mk_term_construct (array env) [sres] 0
               (List.init (env.array_size + 1)
                  (fun i ->
-                    Ast.mk_term_defn fdef slist (* TODO? *)
+                    Ast.mk_term_defn fdef slist
                       (List.map Ast.mk_term_var tl @
                        Ast.[mk_term_select (array env) [sort] 0 i (mk_term_var arr)])))))
 
@@ -192,10 +192,10 @@ struct
        | None ->
          let fdef = map env f slist list in
          FdefHashtbl.add table f fdef;
-         Ast.(mk_term_defn fdef (slist @ [(* TODO *)]) (list @ [a])),
+         Ast.(mk_term_defn fdef (slist @ []) (list @ [a])),
          { env with fdef_list = fdef :: f :: env.fdef_list }
        | Some fdef ->
-         Ast.(mk_term_defn fdef (slist @ [(* TODO *)]) (list @ [a])),
+         Ast.(mk_term_defn fdef (slist @ []) (list @ [a])),
          env)
     | Ast.ArrayDistinct (s, a) ->
       Ast.(mk_term_defn (distinct env) [s] [a]), env
@@ -244,6 +244,15 @@ struct
     | Ast.SortProp ->
       (match after.Ast.term_desc with
 
+       | Ast.TermIte (c, t, e) ->
+          (Ast.mk_term_or
+            (Ast.mk_term_and
+               (Ast.mk_term_equal c (Ast.mk_term_bool true))
+               t)
+            (Ast.mk_term_and
+               (Ast.mk_term_equal c (Ast.mk_term_bool false))
+               e)), acc
+
        | Ast.TermMatch (t, list) ->
          (let open Ast in
           match t.term_sort.sort_desc with
@@ -277,6 +286,15 @@ struct
     match after.Ast.term_sort.Ast.sort_desc with
     | Ast.SortProp ->
       (match after.Ast.term_desc with
+
+       | Ast.TermIte (c, t, e) ->
+          (Ast.mk_term_or
+            (Ast.mk_term_and
+               (Ast.mk_term_equal c (Ast.mk_term_bool true))
+               t)
+            (Ast.mk_term_and
+               (Ast.mk_term_equal c (Ast.mk_term_bool false))
+               e)), acc
 
        | Ast.TermMatch (t, list) ->
          (let open Ast in
@@ -1051,7 +1069,7 @@ struct
 
   type 'a substitution = (('a Ast.term * 'a Ast.term) list) option
 
-  (* Perform prolog-style unification on TermDecls (TODO: reuse unification of UnifyEquality) *)
+  (* Perform prolog-style unification on TermDecls *)
   let rec unify_decls declA declB optsubst : Ast.set substitution =
     let* subst = optsubst in
     match declA.Ast.term_desc, declB.Ast.term_desc with
@@ -1067,7 +1085,6 @@ struct
     | Ast.TermVar vA, Ast.TermVar vB when vA.Ast.var_name = vB.Ast.var_name -> Some subst
     | Ast.TermVar _, _ -> unify_var termA termB subst
     | _, Ast.TermVar _ -> unify_var termB termA subst
-    (*| TODO: TermSelect! *)
     | Ast.TermConstruct (dtA, slistA, idxA, listA), Ast.TermConstruct (dtB, slistB, idxB, listB)
       when Ast.equal dtA dtB && idxA = idxB
            && List.for_all2 Ast.equal slistA slistB
@@ -1188,4 +1205,3 @@ let inline_relations rel_names t = InlineRelations.eval rel_names t
 (******************************************************************************)
 
 let split_rule t = split_rule max_int t
-

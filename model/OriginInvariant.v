@@ -72,6 +72,7 @@ Qed.
 
 
 InlineRelation is_secure_context             With Depth 0.
+InlineRelation is_not_secure_context         With Depth 0.
 InlineRelation window_ctx_of_dom_path_rec    With Depth 0.
 InlineRelation window_ctx_of_dom_path        With Depth 0.
 InlineRelation is_script_in_dom_path         With Depth 0.

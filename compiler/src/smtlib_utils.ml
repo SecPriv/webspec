@@ -555,7 +555,19 @@ let ast_to_smtlib t env =
        finalize fdef env
      | _ -> [])
 
-  | Ast.Query _ -> [mk_cmd_check_sat]
+  | Ast.Query rela ->
+     let var_names = List.map (fun s ->
+                         Printf.sprintf "%s%s" (Ast_utils.sort_to_string s)
+                           (Utils.Name.to_string (Utils.Name.fresh ())))
+                       rela.Ast.rela_prms in
+     let vars = List.map2 Ast.mk_variable var_names rela.Ast.rela_prms in
+     let sorted_vars, env = fold_map_list var_to_sorted_var vars env in
+     let desc, env = term_to_term Ast.(mk_term_imply
+                                         (mk_term_decl (Temporary.relation_to_fundecl rela) []
+                                            (List.map Ast.mk_term_var vars))
+                                         mk_term_false) env in
+     let rule = mk_cmd_assert (mk_term_forall_term sorted_vars desc) in
+     finalize mk_cmd_check_sat (finalize rule env)
 
   | Ast.Relation rela ->
     let prms, env = fold_map_list sort_to_sort rela.Ast.rela_prms env in

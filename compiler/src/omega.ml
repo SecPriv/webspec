@@ -699,7 +699,7 @@ and subst_sym_sort : type a b. a sym -> a sort -> subst -> b sort -> b sort =
   | StProductTerm (v, st) ->
     let v = subst_variable (subst_sym_kind s' st') (subst_sym_sort s' st') env v in
     mk_sort (StProductTerm (v, subst_sym_sort s' st' env st))
-  | StConstant ((*TODO{ cnst_name; cnst_type; cnst_body; _ }*)cn, array) ->
+  | StConstant (cn, array) ->
     (*let cnst_type = subst_sym_kind s' st' env cnst_type in
       let cnst_body = Option.map (subst_sym_sort s' st' env) cnst_body in*)
     let array = Array.map (subst_sym_sort_or_term s' st' env) array in
@@ -754,7 +754,7 @@ and subst_sym_term : type a b. a sym -> a sort -> subst -> b term -> b term =
     let fn = subst_sym_term s' st' env fn in
     let tm = subst_sym_term s' st' env tm in
     mk_term (TmApplyTerm (fn, tm))
-  | TmConstant ((*TODO{ cnst_name; cnst_type; cnst_body; _ }*)cn, array) ->
+  | TmConstant (cn, array) ->
     (*let cnst_type = subst_sym_sort s' st' env cnst_type in
       let cnst_body = Option.map (subst_sym_term s' st' env) cnst_body in*)
     let array = Array.map (subst_sym_sort_or_term s' st' env) array in
@@ -857,7 +857,7 @@ and subst_var_sort : type a b. a var -> a term -> subst -> b sort -> b sort =
     let v = subst_variable (subst_var_kind v' tm') (subst_var_sort v' tm') env v in
     if Name.equal v.var_name v'.var_name then mk_sort (StProductTerm (v, st))
     else mk_sort (StProductTerm (v, subst_var_sort v' tm' env st))
-  | StConstant ((*TODO{ cnst_name; cnst_type; cnst_body; _ }*)cn, array) ->
+  | StConstant (cn, array) ->
     (*let cnst_type = subst_var_kind v' tm' env cnst_type in
       let cnst_body = Option.map (subst_var_sort v' tm' env) cnst_body in*)
     let array = Array.map (subst_var_sort_or_term v' tm' env) array in
@@ -917,7 +917,7 @@ and subst_var_term : type a b. a var -> a term -> subst -> b term -> b term =
     let fn = subst_var_term v' tm' env fn in
     let tm = subst_var_term v' tm' env tm in
     mk_term (TmApplyTerm (fn, tm))
-  | TmConstant ((*TODO{ cnst_name; cnst_type; cnst_body; _ }*)cn, array) ->
+  | TmConstant (cn, array) ->
     (*let cnst_type = subst_var_sort v' tm' env cnst_type in
       let cnst_body = Option.map (subst_var_term v' tm' env) cnst_body in*)
     let array = Array.map (subst_var_sort_or_term v' tm' env) array in
@@ -1450,7 +1450,6 @@ and extract_sort env t : any_sort Result.t =
              extract_sort env ty >>= fun (AnySort ty) ->
              (match equal_kind kd ty.sort_kind with
               | Eq ->
-                (*TODO Here we inline body of sort constants : there should be some type enforcement *)
                 (match witness kd with
                  | Prop -> ok_sort (mk_sort (StConstant (mk_constant cn.cnst_ident kd (Some ty), array)))
                  | Set  -> ok_sort (Array.fold_left sort_apply_sort_or_term ty array))
@@ -1480,8 +1479,8 @@ and extract_sort env t : any_sort Result.t =
           pj.proj_name
       )
 
-  | Cic.Case (cs, tm, ty, array) -> (* TODO: Case returning a function *)
-    (match drop_lambda (* TODO Cic.((fst cs.case_indv).indv_body.mind_npars + 1)*)1 ty with
+  | Cic.Case (cs, tm, ty, array) -> 
+    (match drop_lambda 1 ty with
      | None -> assert false
      | Some ty ->
        extract_term env tm >>= fun (AnyTerm tm) ->
@@ -1602,7 +1601,6 @@ and extract_term env t : any_term Result.t =
     extract_inductive env iv >>= fun (AnyInductive iv) ->
     let oi = iv.indv_body.mind_bodies.(int1) in
     let _, array = get_products (*~n:oi.oind_ctors.(int2).ctor_nargs*) oi.oind_ctors.(int2).ctor_sort in
-    (*TODO assert (Array.length array = oi.oind_ctors.(int2).ctor_nargs);*)
     eta_expand_term
       (fun array -> ok_term (mk_term (TmConstruct ((iv, int1),int2, array))))
       array
@@ -1618,8 +1616,8 @@ and extract_term env t : any_term Result.t =
      | Eq -> ok_term (mk_term (TmProject (pj, tm)))
      | Nq -> failure_extract_term t)
 
-  | Cic.Case (cs, tm, ty, array) -> (* TODO: Case returning a function *)
-    (match drop_lambda (* TODO Cic.((fst cs.case_indv).indv_body.mind_npars + 1)*)1 ty with
+  | Cic.Case (cs, tm, ty, array) ->
+    (match drop_lambda 1 ty with
      | None -> assert false
      | Some ty ->
        extract_term env tm >>= fun (AnyTerm tm) ->

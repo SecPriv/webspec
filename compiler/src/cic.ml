@@ -446,7 +446,6 @@ let rec extract_term (env: env) (types: Constr.types) =
     Ok (mk_term (Project (mk_projection ind name npars arg, tm)))
 
   | Constr.Case (cs, tp, _, tm, array) ->
-    (* TODO: Deal with parameters *)
     extract_case env cs >>= fun cs ->
     extract_typ  env tp >>= fun tp ->
     extract_term env tm >>= fun tm ->

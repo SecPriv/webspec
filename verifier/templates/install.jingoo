@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <script>
+            navigator.serviceWorker.register('/verifier/{{worker}}.js')
+                .then(reg => console.log('ServiceWorker {{worker}} registered successfully with scope: ', reg.scope))
+                .catch(err => console.log('ServiceWorker {{worker}} reigstration faled: ', err));
+        </script>
+    </body>
+</html>
+

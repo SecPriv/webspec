@@ -341,6 +341,8 @@ Variant CSPSrc :=
                (csp_ss_path: option Path)
 .
 
+
+
 Definition csp_src_match (src: CSPSrc) (self: Origin) (u: URL) : Prop :=
   match src with
   | CSPSrcNone => False
@@ -348,7 +350,10 @@ Definition csp_src_match (src: CSPSrc) (self: Origin) (u: URL) : Prop :=
   | CSPSrcScheme proto => (url_protocol u) = proto
   | CSPSrcSource proto sub host port path =>
     match proto with
-    | None => True
+    | None => match self with
+              | OpaqueOrigin _ => True
+              | TupleOrigin origin_proto _ _ => (url_protocol u) = origin_proto
+              end
     | Some p => (url_protocol u) = p
     end /\
     match sub, url_host u with
@@ -727,7 +732,8 @@ Definition is_valid_emitter_request em rq (wd:Window) ft gb : Prop :=
   | EmitterClient =>
     rq_method rq = MethodGet /\
     rq_hd_origin (rq_headers rq) = None /\
-    rq_hd_referer (rq_headers rq) = None
+    rq_hd_referer (rq_headers rq) = None /\
+    rq_body rq = None
   | EmitterScript _ emsc_sc =>
     (* Add origin header *)
     rq_hd_origin (rq_headers rq) = serialize_origin (origin_of_url (wd_location wd)) /\
@@ -754,7 +760,8 @@ Definition is_valid_emitter_request em rq (wd:Window) ft gb : Prop :=
     rq_hd_referer (rq_headers rq) =
     gen_referer (wd_location wd) (rp_hd_referrer_policy (dc_headers (wd_document wd))) /\
     rq_method rq = MethodOptions /\
-    rq_url rq = (rq_url emcp_rq)
+    rq_url rq = (rq_url emcp_rq) /\
+    rq_body rq = None
   | EmitterWorker =>
     rq_hd_origin (rq_headers rq) = serialize_origin (origin_of_url (wd_location wd)) /\
     rq_hd_referer (rq_headers rq) = None /\
@@ -1691,6 +1698,21 @@ Inductive Reachable (gb: Global) : list Event -> State -> Prop :=
       (* Inherit policies from wd_ctx (the navigator initiator) *)
       (windows gb).[ninit_idx] = wd_ctx ->
       update_html_req_initiator gb st_vs (Some ninit_idx) pt st_wd_ st_wd_2 ->
+      (* Navigate to blob requires the blob to exist *)
+      match url_protocol loc with
+      | ProtocolBlob =>
+        match url_path loc with
+        | url_path_blob origin id =>
+          match st_bl.[id] with
+          | None => False
+          | Some blob => loc = (blob_url blob) /\ blob_origin blob = origin
+                         (* Modern browsers block cross-origin blob navigation *)
+                         /\ Some origin = (origin_of_url (wd_location wd_ctx))
+          end
+        | _ => False
+        end
+      | _ => True
+      end ->
 
       Reachable gb (EvScriptNavigateFrame sc_pt pt target_fr loc :: st_ev)
                 ({{ S st_vs, st_ft, st_wk, st_wd_2, st_cj, st_bl, st_sg }})
@@ -1742,6 +1764,9 @@ Inductive Reachable (gb: Global) : list Event -> State -> Prop :=
     (wk_cache st_wk).[rq_idx] = Some rp_idx ->
     (* set the cached response correlator as the current one *)
     is_valid_fetch_response st_ft (responses gb.[rp_idx]) (ft_correlator st_ft) st_dm ->
+    (* https://w3c.github.io/ServiceWorker/#cachestorage-interface WebIDL SecureContext annotation *)
+    (* Here we assume the service worker is a secure context: since we do not model SW registration we can assume *)
+    (* it was performed over https *)
     st_ft_ = Build_FetchEngine (S st_vs)
                (ft_emitter st_ft) (ft_request st_ft) (ft_correlator st_ft)
                (Some (responses gb.[rp_idx]))
@@ -1763,6 +1788,9 @@ Inductive Reachable (gb: Global) : list Event -> State -> Prop :=
         ft_request st_ft = (requests gb.[rq_idx]) /\
         ft_response st_ft = Some (responses gb.[rp_idx])
     ) ->
+    (* https://w3c.github.io/ServiceWorker/#cachestorage-interface WebIDL SecureContext annotation *)
+    (* Here we assume the service worker is a secure context: since we do not model SW registration we can assume *)
+    (* it was performed over https *)
     st_wk_ = Build_ServiceWorker (S st_vs)
                ((wk_cache st_wk).[rq_idx] <- Some rp_idx) ->
 
@@ -1784,6 +1812,7 @@ Inductive Reachable (gb: Global) : list Event -> State -> Prop :=
     end ->
     is_script_in_dom_path gb st_wd pt sc wd_ctx ->
     is_same_origin_request wd_ctx ((requests gb).[rq_idx]) ->
+    is_secure_context gb st_wd pt -> (* https://w3c.github.io/ServiceWorker/#cachestorage-interface WebIDL SecureContext annotation *)
     st_wk_ = Build_ServiceWorker (S st_vs) ((wk_cache st_wk).[rq_idx] <- rp_idx_opt) ->
 
     Reachable gb (EvScriptUpdateCache pt rq_idx rp_idx_opt :: st_ev) ({{ S st_vs, st_ft, st_wk_, st_wd, st_cj, st_bl, st_sg }})

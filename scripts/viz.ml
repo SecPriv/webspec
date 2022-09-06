@@ -77,7 +77,7 @@ let list_notation =
     function
     | Atom nil when is_nil nil -> "[]"
     | List ( Atom cons :: n :: Atom nil :: [] ) when is_cons cons && is_nil nil -> sprintf "[ %s ]" (to_string_hum n)
-    | List lst -> (to_string_hum (List lst)) (*TODO*)
+    | List lst -> (to_string_hum (List lst))
     | x -> failwith "Invalid List: " ^ (to_string_hum x)
 
 let viz_emitter = function
@@ -236,7 +236,6 @@ let viz_event n st = function
      [
        sprintf "%d. EvWorkerCacheMatch (%s)" n num |> note_over "SW";
        (* sprintf "SW -> JS: (responses gb).[%s]" num; *)
-       (* TODO: render (responses gb).[%d] *)
      ] |> String.concat "\n"
   | List (Atom "EvWorkerUpdateCache" ::  rq_idx :: rp_idx :: _) ->
      sprintf "%d. EvWorkerUpdateCache (%s) (%s)" n (to_string rq_idx) (to_string rp_idx) |> note_over "SW"
@@ -257,7 +256,7 @@ let viz_event n st = function
        (viz_dom_level domlevel) (to_string_hum dom)
      |> note_over "JS"
   | List (Atom "EvScriptPostMessage" ::  _) ->
-     sprintf "%d. EvScriptPostMessage (TODO)" n |> note_over "JS"
+     sprintf "%d. EvScriptPostMessage" n |> note_over "JS"
   | List (Atom "EvScriptNavigateFrame" ::  dl1 :: dl2 :: _) ->
      sprintf "%d. EvScriptNavigateFrame (%s) (%s)" n (viz_dom_level dl1) (viz_dom_level dl2) |> note_over "JS"
   | List (Atom "EvScriptCreateBlobUrl" :: domlevel :: url :: _ ) ->

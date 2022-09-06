@@ -37,7 +37,7 @@ let rec find_final_state (form : Sexp.t) =
     | List (Atom "asserted" :: _) -> [] (* ignore asserted *)
     | List [Atom "hyper-res"; fst; snd; body] -> get_hyp env fst @ get_hyp env snd @ get_hyp env body
     | List [Atom "=>"; hyp'; body] -> [expand_sexp env hyp'] @ get_hyp env body
-    | x -> [] (* TODO/FIXME: get those things printed somewhere or check that they match the reachables *)
+    | x -> []
   in go [] [] form
 
 

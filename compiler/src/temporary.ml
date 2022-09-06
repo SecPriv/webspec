@@ -255,7 +255,7 @@ and sort_to_form : env -> prop Omicron.sort -> prop Ast.term Result.t =
   | Omicron.StInt        -> failure (fun _ -> "Temporary.sort_to_form StInt")
   | Omicron.StFloat      -> failure (fun _ -> "Temporary.sort_to_form StFloat")
   | Omicron.StArray _    -> failure (fun _ -> "Temporary.sort_to_form StArray")
-  | Omicron.StSymbol _   -> (* TODO *) failure (fun _ -> "Temporary.sort_to_form StSymbol")
+  | Omicron.StSymbol _   -> failure (fun _ -> "Temporary.sort_to_form StSymbol")
 
 
 and term_to_term : type a. env -> a Omicron.term -> a Ast.term Result.t =
@@ -344,7 +344,6 @@ and term_to_term : type a. env -> a Omicron.term -> a Ast.term Result.t =
        ensure_set_term env array.(3) >>= fun arr ->
        (match f.Ast.term_desc with
         | Ast.TermDefn ({ fdef_name; fdef_prms; fdef_vars; fdef_desc; _ }, slist, list) ->
-          (* TODO: something less ugly *)
           let free = List.filter (fun v -> not (List.mem v fdef_vars)) fdef_desc.Ast.term_free in
           let f = Ast.mk_fundefn fdef_name (fdef_prms @ ["T"; "U"]) (fdef_vars @ free) fdef_desc in
           Ok Ast.(mk_array_map f (slist @ [t; u]) list arr)

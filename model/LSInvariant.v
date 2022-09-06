@@ -83,6 +83,7 @@ Qed.
 
 InlineRelation is_frame_at_page_index.
 InlineRelation is_secure_context             With Depth 1.
+InlineRelation is_not_secure_context         With Depth 1.
 InlineRelation window_ctx_of_dom_path_rec    With Depth 1.
 InlineRelation window_ctx_of_dom_path        With Depth 1.
 InlineRelation is_script_in_dom_path         With Depth 1.
@@ -97,4 +98,4 @@ InlineRelation Scriptstate                   With Depth 5.
 
 
 Set Array Size 7.
-Extract Query LSQuery Using Lemma iframe_samesite_script_state_is_reachable.
+Extract Query LSQuery Using Lemma iframe_sameorigin_script_state_is_reachable.

@@ -109,7 +109,6 @@ and _ term_desc =
 
 and sort_or_term = Sort : _ sort -> sort_or_term | Term : _ term -> sort_or_term
 
-(* TODO: Mutual inductive with mixed kind *)
 and 'a inductive = private {
   indv_hash  : int;
   indv_ident : ident;

@@ -84,9 +84,9 @@ let optimize t =
   >|= Ast_transformation.destruct_rule (Config.DestructRelations.bindings ())
   >|= log "inline_relations"
   >|= Ast_transformation.inline_relations (Config.InlinedRelations.bindings ())
+  >|= log "destruct_match"
+  >|= Ast_transformation.destruct_match
 (*
-    >|= pp_if "destruct_match"
-    >|= Ast_transformation.destruct_match
     >|= pp_if "split_rule"
     >|= Ast_transformation.split_rule
     >|= pp_if "unify_equality"

@@ -2,8 +2,8 @@ synopsis:     "extractor"
 description:  "extractor"
 name:         "extractor"
 opam-version: "2.0"
-maintainer:   "benjamin.farinier@tuwien.ac.at"
-authors:      "Benjamin Farinier"
+maintainer:   "Benjamin Farinier  "
+authors:      "Benjamin Farinier  "
 license:      "GPL 3"
 
 depends: [

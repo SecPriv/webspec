@@ -3,6 +3,7 @@
 
 (require 'cl-lib)
 (require 'pcase)
+(require 'subr-x)
 
 
 (defconst event-constructors
@@ -43,7 +44,7 @@
     (`nil nil)))
 
 
-(cl-defun rename-state (state &key (int-start 20))
+(cl-defun rename-state (state &key (int-start 200))
   (let ((ints (make-hash-table :test #'eql))
         (int-max int-start))
     (cl-labels
@@ -141,7 +142,7 @@
                                (pcase x
                                  ((and `(,name ,_ ,_ ,state) (guard (member name '(reachable Reachable)))) state)
                                  (_ nil))) hyps))))
-    (sort states 
+    (sort states
           (pcase-lambda (`(Build_State ,n1 ,@_) `(Build_State ,n2 ,@_))
             (> n1 n2)))
     (let ((sorted-states (reverse states)))
@@ -153,11 +154,38 @@
       (princ (format "Definition events := %s.\n\n" evs))
       (cl-loop for state in sorted-states do
             (princ (format "Definition state_%d := %s.\n\n" (cadr state) state)))
-      (princ (format "Definition final_state := %s.\n" final-state))
+      (princ (format "Definition final_state := %s.\n\n" final-state))
+
+      (princ (format "Definition states := %s.\n"
+                     (cl-reduce (lambda (x a) `(cons ,x ,a))
+                                (append (mapcar (lambda (s) (format "state_%d" (cadr s))) sorted-states)
+                                        (list 'final_state 'nil))
+                                :from-end t)))
+
       (mapc #'princ `("\nLemma final_state_is_reachable: Reachable global events final_state.\n"
                       ,@(mapcar (lambda (ev) (format "  eapply %s.\n" (cadr (assoc (car ev) event-constructors)))) (eval-list evs))
                       "  eapply Initial_state_is_reachable.\n"
                       "  all: repeat try (compute || firstorder || congruence).\n"
-                      "Qed.\n")))))
+                      ;"Qed.\n\n"
+                      "Admitted.\n\n"
+                      ))
 
-
+      (mapc #'princ (mapcar (lambda (s) (concat s "\n")) `(
+        "Require Extraction."
+        "Extraction Language OCaml."
+        "Extract Inductive list => \"list\" [ \"[]\" \"(::)\" ]."
+        "Extract Inductive prod => \"(*)\"  [ \"(,)\" ]."
+        "Extract Inductive unit => \"unit\" [ \"()\" ]."
+        "Extract Inductive bool => \"bool\" [ \"true\" \"false\" ]."
+        "Extract Inductive option => \"option\" [ \"Some\" \"None\" ]."
+        "Extract Inductive nat => int [ \"0\" \"succ\" ] \"(fun fO fS n -> if n=0 then fO () else fS (n-1))\"."
+        "Extract Constant plus => \"( + )\"."
+        "Extract Constant Nat.eqb => \"( = )\"."
+        "Extract Constant Array.array \"'a\" => \"(int * 'a) list\"."
+        "Extract Constant Array.const => \"(fun x -> [(-1, x)])\"."
+        "Extract Constant Array.store => \"(fun a i x -> (i,x) :: a)\"."
+        "Extract Constant Array.select => \"(fun a i -> Option.value (List.assoc_opt i a) ~default:(List.assoc (-1) a))\"."
+        "Extract Constant Array.map => \"(fun f a -> List.map (fun (i, x) -> (i, f x)) a)\"."
+        ""
+        ,(format "Cd \"%s\"." (string-trim (shell-command-to-string "mktemp -d")))
+        "Separate Extraction global events states."))))))

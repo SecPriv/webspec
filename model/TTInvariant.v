@@ -47,7 +47,7 @@ Definition TTInvariant (gb: Global) (evs: list Event) (st: State) : Prop :=
 (* Add this for TT Colluding inconsistency *)
 (* (c_restrict_tt_to_secure_contexts (config gb)) = false -> *)
 Inductive TTQuery (gb: Global) (evs: list Event) (st: State) : Prop :=
-| Query_state : forall pt sc ctx target_pt target_ctx ssrc ttypes _evs,
+| Query_state : forall (pt: NestedDOMPath) sc ctx target_pt target_ctx target_ctx_after ssrc ttypes _evs,
      c_tt_strict_realm_check (config gb) = false ->
      c_restrict_tt_to_secure_contexts (config gb) = true ->
 
@@ -55,7 +55,7 @@ Inductive TTQuery (gb: Global) (evs: list Event) (st: State) : Prop :=
     (* A script is updating the dom using innerHTML *)
     evs = (EvScriptUpdateHTML pt target_pt target_ctx :: _evs) ->
     is_script_in_dom_path gb (st_window st) pt sc ctx ->
-    window_ctx_of_dom_path gb (st_window st) target_pt target_ctx ->
+    window_ctx_of_dom_path gb (st_window st) target_pt target_ctx_after ->
     (* The target context has Trusted-Types *)
     url_protocol (wd_location target_ctx) = ProtocolHTTPS ->
     rp_hd_csp (dc_headers (wd_document target_ctx)) = Some (Build_CSP ssrc (Some ttypes)) ->
@@ -99,27 +99,25 @@ Proof with simpl in *; firstorder; try congruence.
   induction H1; unfold not...
   - (* script update html *)
     simpl in *.
-    destruct (classic (target_ctx = target_ctx0))...
-    -- rewrite <- H12 in *.
-       destruct (classic (target_pt = target_pt0)).
-       rewrite <- H13 in *.
-       rewrite H3 in H7.
-       rewrite H0 in H7.
+    assert (target_ctx = target_ctx0) by congruence.
+    rewrite H12 in *.
+    assert (target_ctx = target_ctx0) by congruence.
+    rewrite <- H13 in *.
+    rewrite H3 in H7.
+    rewrite H0 in H7.
+    rewrite H in H8.
+    rewrite H8 in H7.
+    assert (scriptstate_c: forall gb st sc realm elt,
+               Scriptstate gb st sc (SOTrustedHTML realm elt) ->
+               exists c, c = (SOTrustedHTML realm elt)
+                         /\ Scriptstate gb st sc c). intros...
+    apply scriptstate_c in H7.
+    destruct H7.
+    destruct H7.
 
-       rewrite H in H8.
-       rewrite H8 in H7.
-       assert (scriptstate_c: forall gb st sc realm elt,
-                  Scriptstate gb st sc (SOTrustedHTML realm elt) ->
-                  exists c, c = (SOTrustedHTML realm elt)
-                            /\ Scriptstate gb st sc c). { intros... }
-       apply scriptstate_c in H7.
-       destruct H7.
-       destruct H7.
-
-       induction H14...
-       * assert (wd_ctx0 = target_ctx) by congruence.
-         subst. rewrite H3 in H15...
-       * congruence.
+    induction H14...
+    * assert (wd_ctx0 = target_ctx) by congruence.
+      subst. rewrite H3 in H15...
 Qed.
 
 Theorem strict_realm_check_implies_invariant :

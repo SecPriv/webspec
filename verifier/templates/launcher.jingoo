@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/channel.sub.js"></script>
+<script src=/websockets/constants.sub.js></script>
+<script src=/portals/resources/stash-utils.sub.js></script>
+<script src="/common/utils.js"></script>
+
+<script>
+
+const delay = (time) =>
+      new Promise((resolve) => setTimeout(resolve, time))
+
+setup({explicit_timeout: true});
+
+const timeout_fn = async(time, label) => {
+  await delay(time) 
+  assert_true(false, label)
+}
+
+
+function run_test(timeout, label, ...fns) {
+  return Promise.race(
+    [ Promise.all(fns.map((x) => x())), 
+      timeout_fn(timeout, label)
+    ]);
+}
+
+
+promise_test(async t => {
+  // here maybe the setup, where we install the SW (and start off the event chain by writing to the stash??)
+  {% for sw in sws %}
+  window.open("{{ sw }}");
+  {% endfor %} 
+
+  {% for action in actions %}
+  {% if action.wait %}
+  await StashUtils.takeValue('{{action.lock}}');
+  {% endif %}
+  {{ action.repr | safe }}
+  StashUtils.putValue('{{action.uuid}}', '{{action.value}}');
+  {% if action.trigger %}
+  StashUtils.putValue('{{action.next}}', 'dummy');
+  {% endif %}
+  {% endfor %} 
+
+  await run_test({{ delay }}, "Timed out", 
+    {% for assert in asserts %}
+    () => StashUtils.takeValue("{{ assert.uuid }}").then(t.step_func(value => {
+        assert_equals(value, "{{ assert.value }}", "{{ assert.tag }}");
+    })),
+    {% endfor %} 
+    async () => { return }
+  );
+}, "{{ name }}");
+
+</script>

@@ -104,7 +104,7 @@ and ('a,'b) constant = {
   cnst_hash : int;
   cnst_ident: ident;
   cnst_prms : sym_or_var array;
-  cnst_type : 'a; (* TODO: fix type of constant *)
+  cnst_type : 'a;
   cnst_body : 'b option;
 }
 
@@ -665,19 +665,6 @@ module SymVarMap = Map.Make
 
 type sym_var_map = sort_or_term array list SymVarMap.t
 
-(* TODO
-   let fresh_name name int =
-   match name with
-   | Name string -> Name (Printf.sprintf "%s<%i>" string int)
-   | Anonymous _ -> fresh_name ()
-
-   let cnt = ref (-1)
-   let fresh_sym s = incr cnt; mk_symbol (fresh_name s.sym_name !cnt) s.sym_kind
-   let fresh_var v = incr cnt; mk_variable (fresh_name v.var_name !cnt) v.var_kind v.var_sort
-
-   let fresh_sym s array = assert (Array.length array = 0); s
-   let fresh_var v array = assert (Array.length array = 0); v
-*)
 
 let fresh_sym s _array = s
 let fresh_var v _array = v
@@ -703,7 +690,7 @@ let union map1 map2 =
     map1 map2
 
 let rec free_sort : type a. a sort -> sym_var_map =
-  fun sort -> (* TODO *)
+  fun sort ->
   match sort.sort_desc with
   | StTrue  -> SymVarMap.empty
   | StFalse -> SymVarMap.empty
@@ -721,7 +708,7 @@ let rec free_sort : type a. a sort -> sym_var_map =
 
 
 and free_term : type a. a term -> sym_var_map =
-  fun term -> (* TODO *)
+  fun term ->
   match term.term_desc with
   | TmTrue    -> SymVarMap.empty
   | TmBool _  -> SymVarMap.empty
@@ -1012,7 +999,7 @@ and extract_sort : type a. env -> a Omega.sort -> a sort Result.t =
     extract_kind env kd >>= fun kd ->
     Result.Array.map (extract_sort_or_term env) array >>= fun array ->
     ok_sort (StPrimitive (pm, kd, array))
-  | Omega.StCase (cs, tm, array) -> (* TODO: Case returning a function *)
+  | Omega.StCase (cs, tm, array) ->
     extract_case_sort env cs array >>= fun cs ->
     extract_term env tm >>= fun tm ->
     ok_sort (StCase (cs, tm))
@@ -1068,7 +1055,7 @@ and extract_term : type a. env -> a Omega.term -> a term Result.t =
     extract_sort env st >>= fun st ->
     Result.Array.map (extract_sort_or_term env) array >>= fun array ->
     ok_term (TmPrimitive (pm, st, array))
-  | Omega.TmCase (cs, tm, array) -> (* TODO: Case returning a function *)
+  | Omega.TmCase (cs, tm, array) ->
     extract_case_term env cs array >>= fun cs ->
     extract_term env tm >>= fun tm ->
     ok_term (TmCase (cs, tm))

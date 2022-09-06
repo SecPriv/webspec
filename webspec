@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WEBSPEC_ROOT="$(dirname "$(realpath $0)")"
+WEBSPEC_DOCKER_IMAGE="webspec/webspec"
+
+WEBSPEC_RUN="docker run --rm --name=webspec -ti  -v \"$WEBSPEC_ROOT:/mnt\" \"$WEBSPEC_DOCKER_IMAGE\""
+
+print_usage () {
+    echo "Usage: $0 [ -h ] ( compile | run | verify [ -c csp ] [ -b BROWSER ] )"
+}
+
+if [[ $# -gt 0 ]]; then
+    case $1 in
+        pull)
+            docker pull "$WEBSPEC_DOCKER_IMAGE"
+            docker pull webplatformtests/wpt:0.52
+            ;;
+        compile)
+            echo -e "\e[1m⚙ Compiling WebSpec . . .\e[0m"
+            eval $WEBSPEC_RUN make all coq verifier
+            ;;
+        clean)
+            echo -e "\e[1m⚙ Cleaning . . .\e[0m"
+            eval $WEBSPEC_RUN make clean
+            ;;
+        run)
+            shift
+            [[ $# -gt 0 ]] || {
+                echo 'Invariant name required!'
+                exit 1
+            }
+            if [[ ! -d "$WEBSPEC_ROOT/compiler/_build" || ! -f "$WEBSPEC_ROOT/model/Browser.vo" ]]; then
+                $0 compile
+            fi
+            eval $WEBSPEC_RUN scripts/run.sh "$1"
+            ;;
+        verify)
+            ADDITIONAL_ARGS=""
+            BROWSER=chromium
+            shift
+            while getopts ":b:c:" ARG; do
+                case "$ARG" in
+                    b)
+                        BROWSER="${OPTARG}"
+                        [[ $BROWSER == "chromium" || $BROWSER == "firefox" ]] || {
+                            echo "Invalid browser. Supported browsers: chromium, firefox."
+                            exit 1
+                        }
+                        ;;
+                    c)
+                        ADDITIONAL_ARGS="-c ${OPTARG}"
+                        ;;
+                    ?)
+                    echo "Invalid option: ${OPTARG}"
+                    ;;
+                esac
+            done
+            shift "$((OPTIND - 1))"
+            
+            [[ $# -gt 0 && -f "$WEBSPEC_ROOT/traces/$1.trace.z3" ]] || {
+                echo 'Valid trace name required! (see traces/)'
+                exit 1
+            }
+            if [[ ! -d "$WEBSPEC_ROOT/verifier/_build" || ! -f "$WEBSPEC_ROOT/model/Browser.vo" ]]; then
+                $0 compile
+            fi
+            IMAGE_NAME="webspec-verifier-${1,,}-$BROWSER"
+            echo -e "\e[1m⚙ Generating Executable Test . . .\e[0m"
+            eval $WEBSPEC_RUN make -s clean-verifier-output
+            eval $WEBSPEC_RUN make "traces/$1.trace.dat" > /dev/null
+            VERIFIER_CMD="cd verifier && dune exec src/main.exe -- ${ADDITIONAL_ARGS} \"../traces/$1.trace.dat\""
+            eval $WEBSPEC_RUN "'$VERIFIER_CMD'" > /dev/null || eval $WEBSPEC_RUN "'$VERIFIER_CMD'"
+            echo -e "\e[1m⚙ [${BROWSER^^}] Building Test Container . . .\e[0m"
+            docker build -t "$IMAGE_NAME" --target "$BROWSER" "$WEBSPEC_ROOT/verifier"
+            echo -e "\e[1m💻 [${BROWSER^^}] Running Test . . .\e[0m"
+            docker run --rm -ti --name "${IMAGE_NAME}_1" "$IMAGE_NAME"
+            ;;
+        *)
+            echo 'Unknown command!'
+            print_usage
+            exit 1
+    esac
+else
+    print_usage
+fi
