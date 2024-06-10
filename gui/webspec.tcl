@@ -101,11 +101,14 @@ proc insert_output {data} {
 }
 
 proc stop_callback {} {
-    global progress status run idlestatus stop
+    global progress status run idlestatus stop verify treeview
     $progress stop
     $progress configure -mode determinate
     $status configure -text $idlestatus
     $run configure -state normal
+    if {[$treeview set [$treeview selection] trace] ne {} } {
+        $verify configure -state normal
+    }
     $stop configure -state disabled
 }
 
@@ -114,18 +117,21 @@ $stop configure -command {
     stop_callback
 }
 
-$run configure -command {
+proc run_webspec_command {command} {
+    global progress status run stop verify treeview webspecdir
+
     $progress configure -mode indeterminate
     $progress start
     $status configure -text "💻 Running [$treeview selection]..."
     $run configure -state disabled
+    $verify configure -state disabled
     $stop configure -state normal
     clear_output
 
     set runtid [thread::create]
     thread::send -async $runtid {
-        proc worker {parentid webspecdir filename} {
-            set io [open "|stdbuf -o0 $webspecdir/webspec run [exec basename $filename {.v}] 2>@1" r]
+        proc worker {parentid webspecdir command filename} {
+            set io [open "|stdbuf -o0 $webspecdir/webspec $command [exec basename $filename {.v}] 2>@1" r]
             fconfigure $io -buffering line
             while {![eof $io]} {
                 set line [gets $io]
@@ -137,8 +143,11 @@ $run configure -command {
             thread::send $parentid {stop_callback}
         }
     }
-    thread::send -async $runtid [list worker [thread::id] $webspecdir [$treeview selection]]
+    thread::send -async $runtid [list worker [thread::id] $webspecdir $command [$treeview selection]]
 }
+
+$run configure -command {run_webspec_command run}
+$verify configure -command {run_webspec_command verify}
 
 set treeview .p0.f1.v0
 $treeview configure -columns "trace" -selectmode browse
