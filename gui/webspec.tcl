@@ -27,10 +27,10 @@ grid [ttk::treeview .p0.f1.v0 -xscrollcommand {.p0.f1.s3 set} -yscrollcommand {.
 grid [ttk::scrollbar .p0.f1.s0 -orient vertical -command {.p0.f1.v0 yview}] -sticky ns -row 0 -column 1
 grid [ttk::scrollbar .p0.f1.s3 -orient horizontal -command {.p0.f1.v0 xview}] -sticky ew -row 1 -column 0
 .p0 add [ttk::frame .p0.f2]
-grid [ctext .p0.f2.t0 -width 80 -yscrollcommand {.p0.f2.s1 set}] -sticky nsew -row 0 -column 0
+grid [ctext .p0.f2.t0 -width 100 -height 50 -yscrollcommand {.p0.f2.s1 set}] -sticky nsew -row 0 -column 0
 grid [ttk::scrollbar .p0.f2.s1 -orient vertical -command {.p0.f2.t0 yview}] -sticky ns -row 0 -column 1
 .p0 add [ttk::frame .p0.f3]
-grid [ctext .p0.f3.t1 -width 80 -state disabled -wrap none -yscrollcommand {.p0.f3.s2 set} -xscrollcommand {.p0.f3.s3 set} -linemap 0] -sticky nsew -padx 0 -pady 0 -row 0 -column 0
+grid [ctext .p0.f3.t1 -width 90 -state disabled -wrap none -yscrollcommand {.p0.f3.s2 set} -xscrollcommand {.p0.f3.s3 set} -linemap 0] -sticky nsew -padx 0 -pady 0 -row 0 -column 0
 grid [ttk::scrollbar .p0.f3.s2 -orient vertical -command {.p0.f3.t1 yview}] -sticky ns -row 0 -column 1
 grid [ttk::scrollbar .p0.f3.s3 -orient horizontal -command {.p0.f3.t1 xview}] -sticky ew -row 1 -column 0
 grid [ttk::frame .f4 -relief flat -borderwidth 4] -sticky nsew -row 2 -column 0
@@ -42,6 +42,7 @@ grid rowconfigure .p0 0 -weight 1
 grid rowconfigure .p0.f2 0 -weight 1
 grid rowconfigure .p0.f1 0 -weight 1
 grid rowconfigure . 1 -weight 1
+
 grid rowconfigure .f0 0 -weight 1
 grid columnconfigure .f4 0 -minsize 250
 grid columnconfigure .f4 1 -weight 1
@@ -75,6 +76,25 @@ ctext::addHighlightClassForRegexp $output level red {level: [0-9]+}
 ctext::addHighlightClassForRegexp $output log blue {^.*\. \. \.$}
 ctext::addHighlightClassForRegexp $output log blue {^.*(Output|Trace):.*$}
 ctext::addHighlightClassForRegexp $output build DarkOrange {Build_[^ ]+}
+
+$output configure -state normal
+$output fastinsert end {
+
+
+
+            ┌────────────────────────────────────────────────────────────────┐
+            │  No Output.                                                    │
+            │                                                                │
+            │  Help:                                                         │
+            │    * Select a Web invariant in the left panel.                 │
+            │    * Click "Run" to execute the Z3 theorem prover.             │
+            │    * If an attack trace is present for the invariant,          │
+            │      click "Verify" to test the attack on Chrome or Firefox.   │
+            │                                                                │
+            └────────────────────────────────────────────────────────────────┘
+
+}
+$output configure -state disabled
 
 
 set status .f4.l2
@@ -186,7 +206,7 @@ $model configure -command {
 
         grid [ttk::notebook .mb.n0] -row 0 -column 0 -sticky nsew
         .mb.n0 add [ttk::frame .mb.n0.f0] -text "Overview"
-        grid [tk::text .mb.n0.f0.t0 -yscrollcommand {.mb.n0.f0.s0 set} -xscrollcommand {.mb.n0.f0.s1 set}] -row 0 -column 0 -sticky nsew
+        grid [tk::text .mb.n0.f0.t0 -width 125 -height 25 -yscrollcommand {.mb.n0.f0.s0 set} -xscrollcommand {.mb.n0.f0.s1 set}] -row 0 -column 0 -sticky nsew
         grid [ttk::scrollbar .mb.n0.f0.s0 -orient vertical -command {.mb.n0.f0.t0 yview}] -sticky ns -row 0 -column 1
         grid [ttk::scrollbar .mb.n0.f0.s1 -orient horizontal -command {.mb.n0.f0.t0 xview}] -sticky ew -row 1 -column 0
         .mb.n0 add [ttk::frame .mb.n0.f1] -text "Source Code"
