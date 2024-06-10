@@ -4,7 +4,7 @@ set -euo pipefail
 WEBSPEC_ROOT="$(dirname "$(realpath $0)")"
 WEBSPEC_DOCKER_IMAGE="webspec/webspec"
 
-WEBSPEC_RUN="docker run --rm --name=webspec -ti  -v \"$WEBSPEC_ROOT:/mnt\" \"$WEBSPEC_DOCKER_IMAGE\""
+WEBSPEC_RUN="docker run --rm --name=webspec -i  -v \"$WEBSPEC_ROOT:/mnt\" \"$WEBSPEC_DOCKER_IMAGE\""
 
 print_usage () {
     echo "Usage: $0 [ -h ] ( compile | run | verify [ -c csp ] [ -b BROWSER ] )"
@@ -24,6 +24,10 @@ if [[ $# -gt 0 ]]; then
             echo -e "\e[1m⚙ Cleaning . . .\e[0m"
             eval $WEBSPEC_RUN make clean
             ;;
+        gui)
+            cd $WEBSPEC_ROOT/gui
+            exec $WEBSPEC_ROOT/gui/webspec-with-deps.tcl
+            ;;
         run)
             shift
             [[ $# -gt 0 ]] || {
@@ -33,7 +37,7 @@ if [[ $# -gt 0 ]]; then
             if [[ ! -d "$WEBSPEC_ROOT/compiler/_build" || ! -f "$WEBSPEC_ROOT/model/Browser.vo" ]]; then
                 $0 compile
             fi
-            eval $WEBSPEC_RUN scripts/run.sh "$1"
+            eval $WEBSPEC_RUN scripts/run.sh "$1" |& sed -e 's/\x1b\[[0-9;]*m//g'
             ;;
         verify)
             ADDITIONAL_ARGS=""

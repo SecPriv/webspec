@@ -1,0 +1,40 @@
+#!/bin/sh
+
+VERSION=with-deps
+
+locate_package () {
+    echo "puts [package ifneeded $1 [package require $1]]; exit" | wish | grep -Po "source \K.*" | xargs dirname
+}
+
+all_files () {
+    find "$1" -type f -printf '%P\n' | sed 's/\.png/\.png%base64/' | xargs echo
+}
+
+if [ ! -d  /tmp/thatch-0.5 ]; then
+    pushd /tmp
+    curl -O https://chiselapp.com/user/stwo/repository/thatch/uv/thatch-0.5.tar.gz
+    tar xvf thatch-0.5.tar.gz
+    popd
+fi
+
+CTEXT_DIR="$(locate_package ctext)"
+ARC_DIR="$(locate_package ttk::theme::arc)"
+THATCHTOOL="tclsh /tmp/thatch-0.5/thatch/thatchtool-0.5.tcl"
+
+
+$THATCHTOOL -c \
+            -o "webspec-${VERSION}.tcl" \
+            -m ./webspec.tcl \
+            -wp \
+            -tb \
+            -rehome /packages/thatch \
+            :thatch: \
+            -home "$CTEXT_DIR" -rehome /packages/ctext/ \
+            $(all_files "$CTEXT_DIR") \
+            -home "$ARC_DIR" -rehome /packages/arc/ \
+            $(all_files "$ARC_DIR") \
+            -home ./patch -rehome /packages/arc/ \
+            pkgIndex.tcl
+            #-modbase /packages
+
+chmod +x "webspec-${VERSION}.tcl"
