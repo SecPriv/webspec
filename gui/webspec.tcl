@@ -8,6 +8,8 @@ package require ttk::theme::arc
 set webspecdir [file join [file dirname [ file normalize [ info script ]]] {../}]
 set idlestatus {✅ Ready}
 
+source "$webspecdir/gui/icons.tcl"
+
 wm title . {WebSpec GUI}
 bind . <Control-q> exit
 wm protocol . WM_DELETE_WINDOW exit
@@ -17,10 +19,10 @@ ttk::style theme use arc
 
 grid [ttk::frame .f0] -sticky nsew -row 0 -column 0
 grid [ttk::label .f0.l0] -sticky nsew -row 0 -column 1
-grid [ttk::button .f0.b1 -text {⏹️ Stop} -state disabled] -sticky nsew -row 0 -column 2 -padx 6 -pady 6
-grid [ttk::button .f0.b0 -text {▶️ Run}] -sticky nsew -row 0 -column 4 -padx 6 -pady 6
-grid [ttk::button .f0.b2 -text "⚙️ Verify" -state disabled] -sticky nsew -row 0 -column 3 -padx 6 -pady 6
-grid [ttk::button .f0.b3 -text "🗎 Browser Model" -state normal] -sticky nsew -row 0 -column 0 -padx 6 -pady 6
+grid [ttk::button .f0.b1 -text Stop -image icons::stop -compound left -state disabled] -sticky nsew -row 0 -column 2 -padx 6 -pady 6
+grid [ttk::button .f0.b0 -text Run -image icons::play -compound left] -sticky nsew -row 0 -column 4 -padx 6 -pady 6
+grid [ttk::button .f0.b2 -text Verify -image icons::settings -compound left -state disabled] -sticky nsew -row 0 -column 3 -padx 6 -pady 6
+grid [ttk::button .f0.b3 -text {Browser Model} -image icons::globe -compound left -state normal] -sticky nsew -row 0 -column 0 -padx 6 -pady 6
 grid [ttk::panedwindow .p0 -orient horizontal] -sticky nsew -row 1 -column 0
 .p0 add [ttk::frame .p0.f1]
 grid [ttk::treeview .p0.f1.v0 -xscrollcommand {.p0.f1.s3 set} -yscrollcommand {.p0.f1.s0 set}] -sticky nsew -row 0 -column 0
