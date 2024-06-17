@@ -153,7 +153,7 @@ proc run_webspec_command {command} {
     set runtid [thread::create]
     thread::send -async $runtid {
         proc worker {parentid webspecdir command filename} {
-            set io [open "|stdbuf -o0 $webspecdir/webspec $command [exec basename $filename {.v}] 2>@1" r]
+            set io [open "|stdbuf -o0 $webspecdir/webspec -t $command [exec basename $filename {.v}] 2>@1" r]
             fconfigure $io -buffering line
             while {![eof $io]} {
                 set line [gets $io]

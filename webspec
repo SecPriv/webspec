@@ -10,6 +10,27 @@ print_usage () {
     echo "Usage: $0 [ -h ] ( compile | run | verify [ -c csp ] [ -b BROWSER ] )"
 }
 
+# disable TTY with -t
+TTY="t"
+if [[ "$1" == "-t" ]]; then
+    TTY=""
+    shift
+fi
+WEBSPEC_RUN="docker run --rm --name=webspec -${TTY}i  -v \"$WEBSPEC_ROOT:/mnt\" \"$WEBSPEC_DOCKER_IMAGE\""
+
+NOCOLOR="sed -e 's/\x1b\[[0-9;]*m//g'"
+PIPE=""
+if [[ -z $TTY ]]; then
+    PIPE="|& ${NOCOLOR}"
+fi
+BLD="\e[1m"
+RST="\e[0m"
+if [[ -z $TTY ]]; then
+    BLD=""
+    RST=""
+fi
+
+
 if [[ $# -gt 0 ]]; then
     case $1 in
         pull)
@@ -17,11 +38,11 @@ if [[ $# -gt 0 ]]; then
             docker pull webplatformtests/wpt:0.52
             ;;
         compile)
-            echo -e "\e[1m⚙ Compiling WebSpec . . .\e[0m"
+            echo -e "${BLD}⚙ Compiling WebSpec . . .${RST}"
             eval $WEBSPEC_RUN make all coq verifier
             ;;
         clean)
-            echo -e "\e[1m⚙ Cleaning . . .\e[0m"
+            echo -e "${BLD}⚙ Cleaning . . .${RST}"
             eval $WEBSPEC_RUN make clean
             ;;
         gui)
@@ -37,7 +58,7 @@ if [[ $# -gt 0 ]]; then
             if [[ ! -d "$WEBSPEC_ROOT/compiler/_build" || ! -f "$WEBSPEC_ROOT/model/Browser.vo" ]]; then
                 $0 compile
             fi
-            eval $WEBSPEC_RUN scripts/run.sh "$1" |& sed -e 's/\x1b\[[0-9;]*m//g'
+            eval $WEBSPEC_RUN scripts/run.sh "$1" $PIPE
             ;;
         verify)
             ADDITIONAL_ARGS=""
@@ -70,15 +91,15 @@ if [[ $# -gt 0 ]]; then
                 $0 compile
             fi
             IMAGE_NAME="webspec-verifier-${1,,}-$BROWSER"
-            echo -e "\e[1m⚙ Generating Executable Test . . .\e[0m"
+            echo -e "${BLD}⚙ Generating Executable Test . . .${RST}"
             eval $WEBSPEC_RUN make -s clean-verifier-output
             eval $WEBSPEC_RUN make "traces/$1.trace.dat" > /dev/null
             VERIFIER_CMD="cd verifier && dune exec src/main.exe -- ${ADDITIONAL_ARGS} \"../traces/$1.trace.dat\""
             eval $WEBSPEC_RUN "'$VERIFIER_CMD'" > /dev/null || eval $WEBSPEC_RUN "'$VERIFIER_CMD'"
-            echo -e "\e[1m⚙ [${BROWSER^^}] Building Test Container . . .\e[0m"
+            echo -e "${BLD}⚙ [${BROWSER^^}] Building Test Container . . .${RST}"
             docker build -t "$IMAGE_NAME" --target "$BROWSER" "$WEBSPEC_ROOT/verifier"
-            echo -e "\e[1m💻 [${BROWSER^^}] Running Test . . .\e[0m"
-            docker run --rm -ti --name "${IMAGE_NAME}_1" "$IMAGE_NAME"
+            echo -e "${BLD}💻 [${BROWSER^^}] Running Test . . .${RST}"
+            eval docker run --rm "-${TTY}i" --name "${IMAGE_NAME}_1" "$IMAGE_NAME"
             ;;
         *)
             echo 'Unknown command!'
